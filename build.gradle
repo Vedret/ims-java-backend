@@ -1,0 +1,93 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.4'
+	id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'ims-java-backend'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(23)
+	}
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+	// Exclude SLF4J bindings that may cause conflicts
+	implementation ('org.springframework.boot:spring-boot-starter-data-jpa') {
+		exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+	}
+
+	implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+	implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+
+	compileOnly 'org.projectlombok:lombok'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+	runtimeOnly 'org.postgresql:postgresql'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// Use Log4j 2 as the logging framework
+	implementation 'org.springframework.boot:spring-boot-starter-log4j2' // Log4j 2 Starter
+}
+
+configurations {
+all {
+	exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+	exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j2-impl'
+}
+}
+
+tasks.register("bootRunLocal") {
+	group = "application"
+	description = "Run backend app with the 'local' profile."
+	doFirst {
+		tasks.named("bootRun").configure {
+			systemProperty("spring.profiles.active", "local")
+			systemProperty("backend.logging.dir", "/target")
+			systemProperty("spring.config.additional-location", "./target/security.yml")
+			systemProperty("logging.config", "src/main/resources/log4j2-spring-local.xml")
+		}
+	}
+	finalizedBy("bootRun")
+}
+
+test {
+	useJUnitPlatform() {includeTags('UNIT')}
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
+}
+
+tasks.register('integrationTest', Test) {
+	useJUnitPlatform() { includeTags('INTEGRATION') }
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
+}
+
+tasks.register('dataTest', Test) {
+	useJUnitPlatform() { includeTags('DATA') }
+	testLogging {
+		events "passed", "skipped", "failed"
+	}
+}
